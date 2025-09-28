@@ -83,7 +83,7 @@ def generate_text(seed_text, max_phrase_len, model=None):
 
 def demo():
     """Demo function for evaluator to test"""
-    print("🎩 SHERLOCK HOLMES TEXT GENERATOR 🎩")
+    print("SHERLOCK HOLMES NEXT WORD PREDICTION")
     print("="*50)
     
     # Test prompts
@@ -113,21 +113,21 @@ if __name__ == "__main__":
         print(f"Prompt: '{prompt}'")
         print(f"Generated ({num_words} tokens): {result}")
     elif len(sys.argv) > 1:
-        # python predict.py "prompt" (default 10 words)
+        # python predict.py "prompt" (default 30 words)
         prompt = sys.argv[1]
-        result, steps = generate_text(prompt, max_phrase_len=10)
+        result, steps = generate_text(prompt, max_phrase_len=30)
         print(f"Prompt: '{prompt}'")
         print(f"Generated: {result}")
     else:
         # Interactive mode
-        print("🎩 SHERLOCK HOLMES TEXT GENERATOR 🎩")
+        print("SHERLOCK HOLMES NEXT WORD PREDICTION")
         print("Usage: python predict.py \"prompt\" [num_tokens]")
         print("Or run interactively:")
         
         prompt = input("Enter prompt: ").strip()
         if prompt:
             try:
-                num_tokens = int(input("Number of tokens to generate (default 10): ") or "10")
+                num_tokens = int(input("Number of tokens to generate (default 30): ") or "30")
             except ValueError:
                 num_tokens = 10
             
