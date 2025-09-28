@@ -16,15 +16,15 @@ uv run python train.py
 
 3. **Generate text:**
 ```bash
-uv run python predict.py "Holmes said" 15
-uv run python predict.py "I saw Watson" 10
+uv run python predict.py "<Seed-Phrase>" 15
+uv run python predict.py "<Seed-Phrase>" 10
 ```
 
 ## Usage
 
 **Command line:**
 ```bash
-uv run python predict.py "your prompt" [num_tokens]
+uv run python predict.py "your prompt" [num_generated_words]
 ```
 
 **Interactive mode:**
