@@ -49,7 +49,7 @@ def load_model(model_path='best_sherlock_model.pth'):
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     
-    print(f"✅ Model loaded successfully!")
+    print(f"   Model loaded successfully!")
     print(f"   Vocab size: {vocab_size}")
     print(f"   Sequence length: {seq_length}")
     
