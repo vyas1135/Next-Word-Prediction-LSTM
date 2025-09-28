@@ -1,6 +1,6 @@
-# Sherlock Holmes Text Generator
+# Sherlock Holmes Next Word Prediction
 
-A neural language model that generates text in the style of Sherlock Holmes stories using LSTM with attention mechanism.
+A neural language model that predicts next word in the style of Sherlock Holmes stories using LSTM with attention mechanism.
 
 ## Quick Start
 
