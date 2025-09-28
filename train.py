@@ -204,7 +204,7 @@ def train_model():
                 'epoch': epoch,
                 'val_loss': val_loss
             }, 'best_sherlock_model.pth')
-            print(f"✅ New best model saved (val_loss: {val_loss:.4f})")
+            print(f" New best model saved (val_loss: {val_loss:.4f})")
         else:
             patience_counter += 1
             print(f"No improvement for {patience_counter}/{patience} epochs")
