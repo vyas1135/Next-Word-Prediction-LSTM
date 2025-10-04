@@ -7,9 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
-import pickle
-from v1.model import (NextWordPredictorLstm, prepare_training_sequences,
+from model import (NextWordPredictorLstm, prepare_training_sequences,
                    evaluate_model_metrics, evaluate_language_model)
+from data_preprocessing import load_training_data
 
 
 def train_neural_language_model(language_model, training_data_loader, validation_data_loader,
@@ -32,7 +32,7 @@ def train_neural_language_model(language_model, training_data_loader, validation
         Tuple of (best_validation_loss, best_epoch_number)
     """
     language_model.train()
-    print("🚀 Initiating neural language model training...")
+    print("Initiating neural language model training...")
 
     # Initialize optimizer and scheduler
     optimizer = optim.AdamW(language_model.parameters(), lr=0.00001)
@@ -157,36 +157,36 @@ def train_neural_language_model(language_model, training_data_loader, validation
                 'pad_token_id': language_model.padding_token_id
             }
             torch.save(model_checkpoint, checkpoint_save_path)
-            print(f"💾 New best model checkpoint saved! Validation Loss: {average_validation_loss:.4f}")
+            print(f"New best model checkpoint saved! Validation Loss: {average_validation_loss:.4f}")
         else:
             patience_counter += 1
 
         # Comprehensive metrics evaluation every 10 epochs
         if (current_epoch + 1) % 10 == 0:
-            print(" Computing comprehensive evaluation metrics...")
+            print("Computing comprehensive evaluation metrics...")
             training_accuracy, training_perplexity = evaluate_model_metrics(language_model, training_data_loader, computation_device)
             validation_accuracy, validation_perplexity = evaluate_model_metrics(language_model, validation_data_loader, computation_device)
 
-            print(f" Epoch [{current_epoch+1}/{training_epochs}] Comprehensive Results:")
-            print(f"   Training Loss: {average_training_loss:.4f}, Validation Loss: {average_validation_loss:.4f}")
-            print(f"   Training Accuracy: {training_accuracy:.4f}, Validation Accuracy: {validation_accuracy:.4f}")
-            print(f"   Training Perplexity: {training_perplexity:.2f}, Validation Perplexity: {validation_perplexity:.2f}")
-            print(f"   Best Validation Loss: {best_validation_loss:.4f} (Epoch {best_epoch_number})")
-            print(f"   Early Stopping Patience: {patience_counter}/{early_stopping_patience}")
+            print(f"Epoch [{current_epoch+1}/{training_epochs}] Comprehensive Results:")
+            print(f"  Training Loss: {average_training_loss:.4f}, Validation Loss: {average_validation_loss:.4f}")
+            print(f"  Training Accuracy: {training_accuracy:.4f}, Validation Accuracy: {validation_accuracy:.4f}")
+            print(f"  Training Perplexity: {training_perplexity:.2f}, Validation Perplexity: {validation_perplexity:.2f}")
+            print(f"  Best Validation Loss: {best_validation_loss:.4f} (Epoch {best_epoch_number})")
+            print(f"  Early Stopping Patience: {patience_counter}/{early_stopping_patience}")
             print("-" * 80)
         else:
-            print(f"📈 Epoch [{current_epoch+1}/{training_epochs}] Training Loss: {average_training_loss:.4f}, "
+            print(f"Epoch [{current_epoch+1}/{training_epochs}] Training Loss: {average_training_loss:.4f}, "
                   f"Validation Loss: {average_validation_loss:.4f} | Best: {best_validation_loss:.4f}")
 
         # Early stopping mechanism
         if patience_counter >= early_stopping_patience:
-            print(f" Early stopping activated! No improvement for {early_stopping_patience} epochs.")
+            print(f"Early stopping activated! No improvement for {early_stopping_patience} epochs.")
             break
 
         # Return to training mode for next epoch
         language_model.train()
 
-    print(f" Training completed successfully! Best model from epoch {best_epoch_number} "
+    print(f"Training completed successfully! Best model from epoch {best_epoch_number} "
           f"with validation loss {best_validation_loss:.4f}")
     return best_validation_loss, best_epoch_number
 
@@ -196,20 +196,16 @@ def execute_complete_training_pipeline():
     Execute complete neural language model training pipeline.
     Loads data, trains model, and evaluates performance.
     """
-    
-    with open("embeddings.pkl", 'rb') as embedding_file:
-        embedding_data = pickle.load(embedding_file)
-    with open("data.pkl", 'rb') as sequence_file:
-        sequence_data = pickle.load(sequence_file)
+    # Load preprocessed data and embeddings
+    embedding_matrix, vocab_data, sequences = load_training_data()
 
     # Extract training data
-    training_sequences = sequence_data['train_sequences']
-    validation_sequences = sequence_data['val_sequences']
-    testing_sequences = sequence_data['test_sequences']
+    training_sequences = sequences['train']
+    validation_sequences = sequences['val']
+    testing_sequences = sequences['test']
 
-
-    token_to_id_mapping = embedding_data['word_to_idx']
-    embedding_matrix = embedding_data['embeddings_matrix']
+    # Extract vocabulary mappings
+    token_to_id_mapping = vocab_data['word_to_idx']
 
     # Initialize training parameters
     padding_token_id = token_to_id_mapping["<PAD>"]
@@ -221,17 +217,17 @@ def execute_complete_training_pipeline():
     # Prepare data loaders for training, validation, and testing
     print("Creating data loaders for training pipeline...")
 
-    # Training data loader
+    # Data loading
     train_inputs, train_targets = prepare_training_sequences(training_sequences)
     training_dataset = TensorDataset(train_inputs, train_targets)
     training_data_loader = DataLoader(training_dataset, batch_size=training_batch_size, shuffle=True)
 
-    # Validation data loader
+    
     val_inputs, val_targets = prepare_training_sequences(validation_sequences)
     validation_dataset = TensorDataset(val_inputs, val_targets)
     validation_data_loader = DataLoader(validation_dataset, batch_size=training_batch_size, shuffle=False)
 
-    # Test data loader
+    
     test_inputs, test_targets = prepare_training_sequences(testing_sequences)
     testing_dataset = TensorDataset(test_inputs, test_targets)
     testing_data_loader = DataLoader(testing_dataset, batch_size=training_batch_size, shuffle=False)
@@ -277,11 +273,14 @@ def execute_complete_training_pipeline():
 
     print("\nNeural language model training pipeline completed successfully!")
 
+    # Generate sample text demonstrations
+    print("\n" + "="*80)
     print("GENERATING SAMPLE TEXT DEMONSTRATIONS")
+    print("="*80)
 
     from text_generator import generate_text
 
-    
+    # Prepare mappings for text generation
     id_to_token_mapping = {v: k for k, v in token_to_id_mapping.items()}
 
     # Sample prompts for demonstration
@@ -332,13 +331,14 @@ def execute_complete_training_pipeline():
             sampling_temperature=0.8,
             max_context_length=40,
             computation_device=computation_device,
-            show_predictions=True
+            show_predictions=True  # This will be added to generator
         )
         print(f"Generated: {detailed_text}")
     except Exception as e:
         print(f"Detailed generation failed: {e}")
 
     print("\nComplete pipeline finished! Model ready for use.")
+    print("To generate more text, run: python generator.py")
 
 
 if __name__ == "__main__":

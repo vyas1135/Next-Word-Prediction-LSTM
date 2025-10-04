@@ -7,7 +7,7 @@ from v1.predict import generate_text, demo
 
 def main():
     """Full pipeline: train model then generate text"""
-    print("🚀 Starting full Sherlock Holmes generator pipeline...")
+    print("Starting full Sherlock Holmes generator pipeline...")
     
     # 1. Train the model
     print("\n" + "="*50)

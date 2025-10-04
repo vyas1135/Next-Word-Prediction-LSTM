@@ -6,8 +6,76 @@ import re
 import random
 import numpy as np
 from collections import Counter
-import pickle
+import json
 import os
+import requests
+
+
+def save_training_data(embeddings, vocab_data, sequences, base_path="data"):
+    """Save training data in portable formats."""
+    os.makedirs(base_path, exist_ok=True)
+
+    # Save embeddings as NumPy
+    np.save(f'{base_path}/embeddings.npy', embeddings)
+
+    # Save vocabulary as JSON
+    with open(f'{base_path}/vocabulary.json', 'w') as f:
+        json.dump(vocab_data, f, indent=2)
+
+    # Save sequences as compressed NumPy
+    np.savez_compressed(f'{base_path}/sequences.npz',
+                       train=sequences['train'],
+                       val=sequences['val'],
+                       test=sequences['test'])
+
+    print(f"Training data saved to {base_path}/ (embeddings.npy, vocabulary.json, sequences.npz)")
+
+
+def load_training_data(base_path="data"):
+    """Load training data from portable formats."""
+    embeddings = np.load(f'{base_path}/embeddings.npy')
+
+    with open(f'{base_path}/vocabulary.json', 'r') as f:
+        vocab_data = json.load(f)
+
+    sequences = np.load(f'{base_path}/sequences.npz')
+
+    return embeddings, vocab_data, sequences
+
+
+def check_training_data_exists(base_path="data"):
+    """Check if all training data files exist."""
+    required_files = [
+        f'{base_path}/embeddings.npy',
+        f'{base_path}/vocabulary.json',
+        f'{base_path}/sequences.npz'
+    ]
+    return all(os.path.exists(f) for f in required_files)
+
+
+def download_sherlock_holmes_text(file_path="data/sherlock_holmes.txt"):
+    """Download Sherlock Holmes text from Project Gutenberg if not already present."""
+    if os.path.exists(file_path):
+        print(f"Text file already exists: {file_path}")
+        return file_path
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    url = "https://www.gutenberg.org/files/1661/1661-0.txt"
+    print(f"Downloading Sherlock Holmes text from Project Gutenberg...")
+
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(response.text)
+
+        print(f"Successfully downloaded: {file_path}")
+        return file_path
+
+    except requests.RequestException as e:
+        raise RuntimeError(f"Failed to download text file: {e}")
 
 
 def process_text_and_generate_embeddings(source_file, train_fraction=0.7, val_fraction=0.2):
@@ -27,11 +95,11 @@ def process_text_and_generate_embeddings(source_file, train_fraction=0.7, val_fr
     except ImportError:
         raise ImportError("sentence-transformers library required: pip install sentence-transformers")
 
-    
+    # Load and preprocess raw text
     with open(source_file, "r", encoding="utf-8") as file_handle:
         raw_content = file_handle.read()
 
-    # Extract, Clean and normalize text
+    # Extract main text content between Project Gutenberg markers
     content_parts = raw_content.split("*** START OF THE PROJECT GUTENBERG EBOOK THE ADVENTURES OF SHERLOCK\nHOLMES ***")
     content_parts = content_parts[1].split("*** END OF THE PROJECT GUTENBERG EBOOK THE ADVENTURES OF SHERLOCK\nHOLMES ***")
 
@@ -62,7 +130,6 @@ def process_text_and_generate_embeddings(source_file, train_fraction=0.7, val_fr
             text_chunks.append(current_chunk.strip())
             current_chunk = sentence
 
-    
     random.shuffle(text_chunks)
     total_chunks = len(text_chunks)
     train_end_idx = int(total_chunks * train_fraction)
@@ -146,36 +213,27 @@ def setup_training_data(source_file="data/sherlock_holmes.txt", force_rebuild=Fa
     Returns:
         bool: True if processing was performed, False if existing files were used
     """
-    embeddings_path = "embeddings.pkl"
-    sequences_path = "data.pkl"
+    # Download text file if it doesn't exist
+    source_file = download_sherlock_holmes_text(source_file)
 
-    if not force_rebuild and os.path.exists(embeddings_path) and os.path.exists(sequences_path):
+    if not force_rebuild and check_training_data_exists():
         print("Training data files already exist. Skipping preprocessing.")
         return False
 
     train_seqs, val_seqs, test_seqs, token_to_id, id_to_token, embed_matrix = process_text_and_generate_embeddings(source_file)
 
-    
-    sequence_data = {
-        'train_sequences': train_seqs,
-        'val_sequences': val_seqs,
-        'test_sequences': test_seqs
+    sequences = {
+        'train': train_seqs,
+        'val': val_seqs,
+        'test': test_seqs
     }
 
-    embedding_data = {
+    vocab_data = {
         'word_to_idx': token_to_id,
-        'idx_to_word': id_to_token,
-        'embeddings_matrix': embed_matrix
+        'idx_to_word': id_to_token
     }
 
-    # Save preprocessed data
-    with open(embeddings_path, 'wb') as f:
-        pickle.dump(embedding_data, f)
-
-    with open(sequences_path, 'wb') as f:
-        pickle.dump(sequence_data, f)
-
-    print(f"Text preprocessing completed. Data saved to '{embeddings_path}' and '{sequences_path}'.")
+    save_training_data(embed_matrix, vocab_data, sequences)
     return True
 
 

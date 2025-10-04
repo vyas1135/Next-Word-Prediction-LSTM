@@ -146,7 +146,7 @@ def main():
             max_context_length=40,
             computation_device=computation_device
         )
-        print(f"✨ Generated text: {generated_text}")
+        print(f"Generated text: {generated_text}")
         print("-" * 80)
 
 if __name__ == "__main__":
